@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  10.0f
-#define REWARD_LOSS -10.0f
+#define REWARD_WIN  100.0f
+#define REWARD_LOSS -100.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -628,7 +628,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 				avgGoalDelta /= distDeltas.size();
 
-				rewardHistory += -avgGoalDelta;
+				rewardHistory += avgGoalDelta;
 				newReward     = true;
 			}
 
