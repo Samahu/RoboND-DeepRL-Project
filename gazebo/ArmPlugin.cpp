@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  1.0f
-#define REWARD_LOSS -1.0f
+#define REWARD_WIN  10.0f
+#define REWARD_LOSS -10.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -84,7 +84,7 @@ ArmPlugin::ArmPlugin() :
 	ModelPlugin(), 
 	cameraNode(new gazebo::transport::Node()),
 	collisionNode(new gazebo::transport::Node()),
-	distDeltas(10)
+	distDeltas(5)
 {
 	printf("ArmPlugin::ArmPlugin()\n");
 
@@ -596,7 +596,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory = REWARD_LOSS;
+			rewardHistory += REWARD_LOSS;
 			newReward     = true;
 			endEpisode    = true;
 		}
@@ -628,7 +628,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 				avgGoalDelta /= distDeltas.size();
 
-				rewardHistory = -avgGoalDelta;
+				rewardHistory += -avgGoalDelta;
 				newReward     = true;
 			}
 
