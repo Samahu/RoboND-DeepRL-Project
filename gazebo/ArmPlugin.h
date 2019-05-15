@@ -59,6 +59,9 @@ public:
 	static const uint32_t DOF  = 3;	// active degrees of freedom in the arm
 
 private:
+	bool checkGroundContact(const math::Box& box, float floor) const;
+
+private:
 	float ref[DOF];			// joint reference positions
 	float vel[DOF];			// joint velocity control
 	float dT[3];				// IK delta theta
