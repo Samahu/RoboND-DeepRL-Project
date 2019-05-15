@@ -80,7 +80,11 @@ GZ_REGISTER_MODEL_PLUGIN(ArmPlugin)
 
 
 // constructor
-ArmPlugin::ArmPlugin() : ModelPlugin(), cameraNode(new gazebo::transport::Node()), collisionNode(new gazebo::transport::Node())
+ArmPlugin::ArmPlugin() : 
+	ModelPlugin(), 
+	cameraNode(new gazebo::transport::Node()),
+	collisionNode(new gazebo::transport::Node()),
+	distDeltas(10)
 {
 	printf("ArmPlugin::ArmPlugin()\n");
 
@@ -583,11 +587,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		const float groundContact = 0.05f;
 		
 		/*
-		/ TODO - set appropriate Reward for robot hitting the ground.
+		/ DONE - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-		
-		
+
 		if(checkGroundContact(gripBBox, groundContact))
 		{
 						
@@ -603,26 +606,34 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/
 		*/ 
 		
-		/*
-		if(!checkGroundContact)
+		if(!checkGroundContact(gripBBox, groundContact))
 		{
-			const float distGoal = 0; // compute the reward from distance to the goal
+			const float distGoal = BoxDistance(gripBBox, prop->model->GetBoundingBox()); // compute the reward from distance to the goal
 
-			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
+			if(true){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
 			
 			if( episodeFrames > 1 )
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 
+				
+
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = 0.0;
-				rewardHistory = None;
-				newReward     = None;	
+				distDeltas.push_back(distDelta);
+
+				avgGoalDelta = 0;
+				for (auto e : distDeltas)
+					avgGoalDelta += e;
+
+				avgGoalDelta /= distDeltas.size();
+
+				rewardHistory = -avgGoalDelta;
+				newReward     = true;
 			}
 
 			lastGoalDistance = distGoal;
-		} */
+		}
 	}
 
 	// issue rewards and train DQN
@@ -643,6 +654,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			episodeFrames    = 0;
 			lastGoalDistance = 0.0f;
 			avgGoalDelta     = 0.0f;
+			distDeltas.clear();
 
 			// track the number of wins and agent accuracy
 			if( rewardHistory >= REWARD_WIN )

@@ -8,6 +8,7 @@
 #include "deepRL.h"
 
 #include <boost/bind.hpp>
+#include <boost/circular_buffer.hpp>
 #include <gazebo/gazebo.hh>
 #include <gazebo/transport/transport.hh>
 #include <gazebo/msgs/msgs.hh>
@@ -86,6 +87,7 @@ private:
 	uint32_t animationStep;
 	float    resetPos[DOF];
 	float    lastGoalDistance;
+	boost::circular_buffer<float> distDeltas;
 	float    avgGoalDelta;
 	int	    successfulGrabs;
 	int	    totalRuns;
