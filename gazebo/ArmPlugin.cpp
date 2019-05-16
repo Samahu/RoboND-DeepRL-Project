@@ -247,7 +247,6 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 
 }
 
-
 // onCollisionMsg
 void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 {
@@ -261,7 +260,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
-		if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
+		if(true){std::cout << "Collision between[" << contacts->contact(i).collision1()
 			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
 	
@@ -270,18 +269,21 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		/*
-		
-		if (collisionCheck)
+		if (contacts->contact(i).collision2() == "arm::link2::collision2")
 		{
-			rewardHistory = None;
-
-			newReward  = None;
-			endEpisode = None;
-
+			rewardHistory += REWARD_WIN / 100;
+			newReward  = true;
+			endEpisode = true;
 			return;
 		}
-		*/
+
+		else if (contacts->contact(i).collision2() == "arm::gripperbase::gripper_link")
+		{
+			rewardHistory = REWARD_WIN;
+			newReward  = true;
+			endEpisode = true;
+			return;
+		}
 		
 	}
 }
@@ -471,7 +473,7 @@ float ArmPlugin::resetPosition( uint32_t dof )
 
 
 // compute the distance between two bounding boxes
-static float BoxDistance(const math::Box& a, const math::Box& b)
+float ArmPlugin::BoxDistance(const math::Box& a, const math::Box& b)
 {
 	float sqrDist = 0;
 
@@ -596,7 +598,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory += REWARD_LOSS;
+			rewardHistory += REWARD_LOSS /10 ;
 			newReward     = true;
 			endEpisode    = true;
 		}
@@ -610,7 +612,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		{
 			const float distGoal = BoxDistance(gripBBox, prop->model->GetBoundingBox()); // compute the reward from distance to the goal
 
-			if(true){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
+			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
 			
 			if( episodeFrames > 1 )
@@ -629,7 +631,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				avgGoalDelta /= distDeltas.size();
 
 				rewardHistory += avgGoalDelta;
-				newReward     = true;
+
+				printf("rewardHistory is %f\n", rewardHistory);
+				newReward     = false;
 			}
 
 			lastGoalDistance = distGoal;

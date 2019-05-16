@@ -60,6 +60,7 @@ public:
 	static const uint32_t DOF  = 3;	// active degrees of freedom in the arm
 
 private:
+	static float BoxDistance(const math::Box& a, const math::Box& b);
 	bool checkGroundContact(const math::Box& box, float floor) const;
 
 private:
