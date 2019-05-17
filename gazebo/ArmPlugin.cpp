@@ -38,11 +38,11 @@
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
 #define OPTIMIZER "RMSprop"
-#define LEARNING_RATE 0.01f
+#define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 1000
 #define BATCH_SIZE 8
 #define USE_LSTM true
-#define LSTM_SIZE 64
+#define LSTM_SIZE 256
 
 /*
 / TODO - Define Reward Parameters
@@ -120,7 +120,8 @@ ArmPlugin::ArmPlugin() :
 	animationStep    = 0;
 	lastGoalDistance = 0.0f;
 	avgGoalDelta     = 0.0f;
-	successfulGrabs = 0;
+	successfulGrabs  = 0;
+	successfulTouches = 0;
 	totalRuns       = 0;
 }
 
@@ -255,6 +256,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 	if( testAnimation )
 		return;
 
+	bool successfulTouches_set = false;
+
 	for (unsigned int i = 0; i < contacts->contact_size(); ++i)
 	{
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
@@ -269,6 +272,11 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
+		if (!successfulTouches_set)	// increment successfulTouches once per multiple contancts
+		{
+			++successfulTouches;
+			successfulTouches_set = true;
+		}
 
 		if (contacts->contact(i).collision1() == COLLISION_ITEM &&
 			contacts->contact(i).collision2() == COLLISION_POINT)
@@ -283,7 +291,6 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 			rewardHistory = REWARD_LOSS;
 			newReward  = true;
 			endEpisode = true;
-			return;
 		}
 		
 	}
@@ -597,9 +604,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		if(checkGroundContact(gripBBox, groundContact))
 		{
 						
-			if(true){printf("GROUND CONTACT, EOE\n");}
+			if(true){printf("GROUND CONTACT, EOE ....................\n");}
 
-			rewardHistory = REWARD_LOSS / 10;
+			rewardHistory = REWARD_LOSS;
 			newReward     = true;
 			endEpisode    = true;
 		}
@@ -665,7 +672,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				successfulGrabs++;
 
 			totalRuns++;
-			printf("Current Accuracy:  %0.4f (%03u of %03u)  (reward=%+0.2f %s)\n", float(successfulGrabs)/float(totalRuns), successfulGrabs, totalRuns, rewardHistory, (rewardHistory >= REWARD_WIN ? "WIN" : "LOSS"));
+			printf("Current Accuracy:  Touches = %0.4f (%03u of %03u), Grabs = %0.4f (%03u of %03u) (reward=%+0.2f %s)\n",
+				float(successfulTouches)/float(totalRuns), successfulTouches, totalRuns,
+				float(successfulGrabs)/float(totalRuns), successfulGrabs, totalRuns,
+				rewardHistory, (rewardHistory >= REWARD_WIN ? "WIN" : "LOSS"));
 
 
 			for( uint32_t n=0; n < DOF; n++ )
