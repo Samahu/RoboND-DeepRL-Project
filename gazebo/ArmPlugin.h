@@ -91,6 +91,7 @@ private:
 	boost::circular_buffer<float> distDeltas;
 	float    avgGoalDelta;
 	int	    successfulGrabs;
+	bool	successfulTouch;
 	int		successfulTouches;
 	int	    totalRuns;
 	int      runHistoryIdx;

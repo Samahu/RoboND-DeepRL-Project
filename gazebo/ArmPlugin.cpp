@@ -41,7 +41,7 @@
 #define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 1000
 #define BATCH_SIZE 8
-#define USE_LSTM true
+#define USE_LSTM false
 #define LSTM_SIZE 256
 
 /*
@@ -121,6 +121,7 @@ ArmPlugin::ArmPlugin() :
 	lastGoalDistance = 0.0f;
 	avgGoalDelta     = 0.0f;
 	successfulGrabs  = 0;
+	successfulTouch	 = false;
 	successfulTouches = 0;
 	totalRuns       = 0;
 }
@@ -256,8 +257,6 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 	if( testAnimation )
 		return;
 
-	bool successfulTouches_set = false;
-
 	for (unsigned int i = 0; i < contacts->contact_size(); ++i)
 	{
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
@@ -272,11 +271,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		if (!successfulTouches_set)	// increment successfulTouches once per multiple contancts
-		{
-			++successfulTouches;
-			successfulTouches_set = true;
-		}
+		successfulTouch = true;
 
 		if (contacts->contact(i).collision1() == COLLISION_ITEM &&
 			contacts->contact(i).collision2() == COLLISION_POINT)
@@ -672,6 +667,13 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				successfulGrabs++;
 
 			totalRuns++;
+
+			if (successfulTouch)
+			{
+				successfulTouches++;
+				successfulTouch = false;	//reset
+			}
+
 			printf("Current Accuracy:  Touches = %0.4f (%03u of %03u), Grabs = %0.4f (%03u of %03u) (reward=%+0.2f %s)\n",
 				float(successfulTouches)/float(totalRuns), successfulTouches, totalRuns,
 				float(successfulGrabs)/float(totalRuns), successfulGrabs, totalRuns,
