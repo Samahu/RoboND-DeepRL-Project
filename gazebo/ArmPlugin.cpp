@@ -16,7 +16,7 @@
 #define JOINT_MAX	 2.0f
 
 // Turn on velocity based control
-#define VELOCITY_CONTROL true
+#define VELOCITY_CONTROL false
 #define VELOCITY_MIN -0.2f
 #define VELOCITY_MAX  0.2f
 
@@ -38,11 +38,11 @@
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
 #define OPTIMIZER "RMSprop"
-#define LEARNING_RATE 0.0f
-#define REPLAY_MEMORY 10000
+#define LEARNING_RATE 0.01f
+#define REPLAY_MEMORY 1000
 #define BATCH_SIZE 8
-#define USE_LSTM false
-#define LSTM_SIZE 32
+#define USE_LSTM true
+#define LSTM_SIZE 64
 
 /*
 / TODO - Define Reward Parameters
@@ -269,17 +269,18 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		if (contacts->contact(i).collision2() == "arm::link2::collision2")
+
+		if (contacts->contact(i).collision1() == COLLISION_ITEM &&
+			contacts->contact(i).collision2() == COLLISION_POINT)
 		{
-			rewardHistory += REWARD_WIN / 100;
+			rewardHistory = REWARD_WIN;
 			newReward  = true;
 			endEpisode = true;
 			return;
 		}
-
-		else if (contacts->contact(i).collision2() == "arm::gripperbase::gripper_link")
+		else
 		{
-			rewardHistory = REWARD_WIN;
+			rewardHistory = REWARD_LOSS;
 			newReward  = true;
 			endEpisode = true;
 			return;
@@ -340,7 +341,7 @@ bool ArmPlugin::updateAgent()
 	if( velocity > VELOCITY_MAX )
 		velocity = VELOCITY_MAX;
 
-	vel[action/2] = velocity;
+	vel[action/2] += velocity;
 	
 	for( uint32_t n=0; n < DOF; n++ )
 	{
@@ -372,7 +373,7 @@ bool ArmPlugin::updateAgent()
 	if( joint > JOINT_MAX )
 		joint = JOINT_MAX;
 
-	ref[action/2] = joint;
+	ref[action/2] += joint;
 
 #endif
 
@@ -596,9 +597,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		if(checkGroundContact(gripBBox, groundContact))
 		{
 						
-			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
+			if(true){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory += REWARD_LOSS /10 ;
+			rewardHistory = REWARD_LOSS / 10;
 			newReward     = true;
 			endEpisode    = true;
 		}
@@ -630,10 +631,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 				avgGoalDelta /= distDeltas.size();
 
-				rewardHistory += avgGoalDelta;
+				rewardHistory = avgGoalDelta * REWARD_WIN;
 
-				printf("rewardHistory is %f\n", rewardHistory);
-				newReward     = false;
+				newReward     = true;
 			}
 
 			lastGoalDistance = distGoal;
