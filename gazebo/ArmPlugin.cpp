@@ -35,11 +35,11 @@
 /
 */
 
-#define INPUT_WIDTH   512
-#define INPUT_HEIGHT  512
+#define INPUT_WIDTH   64
+#define INPUT_HEIGHT  64
 #define OPTIMIZER "RMSprop"
 #define LEARNING_RATE 0.1f
-#define REPLAY_MEMORY 1000
+#define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
 #define USE_LSTM false
 #define LSTM_SIZE 256
