@@ -40,17 +40,17 @@
 #define OPTIMIZER "RMSprop"
 #define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
-#define BATCH_SIZE 8
+#define BATCH_SIZE 64
 #define USE_LSTM false
-#define LSTM_SIZE 256
+#define LSTM_SIZE 32
 
 /*
 / TODO - Define Reward Parameters
 /
 */
 
-#define REWARD_WIN  100.0f
-#define REWARD_LOSS -100.0f
+#define REWARD_WIN  200.0f
+#define REWARD_LOSS -200.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
