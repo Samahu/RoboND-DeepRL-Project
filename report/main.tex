@@ -6,7 +6,7 @@
 
 \title{Udacity Manipulator Arm Report}
 \author{Ussama Naal}
-\date{May 2019\\v2.0}
+\date{May 2019\\v3.0}
 \begin{document}
 
 \maketitle
@@ -203,9 +203,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 Table 1, lists all used parameters and their values with a brief explanation to the used values when a value has been changed.
 
-\begin{table}[ht]
-\caption{Parameters}
-\label{table_example}
+\begin{table}[!ht]
+\caption{Initial Parameters}
+\label{initial_params}
 \begin{center}
 \begin{tabular}{|c||c||c|}
 \hline
@@ -249,22 +249,96 @@ For the reward value, I have initially started with +100 and -100 for win and lo
 
 \section{Results}
 
+\subsection{Initiail Results}
 Under current implementation and the selected parameter values the robot achieves about 90\% successful touches and 88\% successful grabs within 130 episodes (Check Figure 1). It reaches easily 80\% within just 100 iterations.
 
 \begin{figure}[!thpb]
       \centering
-      \includegraphics[width=\linewidth]{final-result.png}
-      \caption{Best achieved result.}
+      \includegraphics[width=\linewidth]{initial-result.png}
+      \caption{Initial achieved result.}
       \label{fig:robot1}
 \end{figure}
 
 %Student should describe and briefly explain the results they achieved for both objectives. The discussion should also include their comments on the DQN agent's performance and if there were any shortcomings.
 
-Doubling the REWARD values for WIN and LOSS from previous tests, had a huge impact on the agent performance. This seems to signal to the agent that the final results is the only that matters.
+Doubling the REWARD values for WIN and LOSS from previous tests, had a huge impact on the agent performance. This signals to the agent that the final results is the only that matters.
 
 Some noticeable shortcomings is that the first few iterations greatly decides the final outcome. If the agent was able to touch or grab the object in the beginning, this results in a better chance of the agent achieving the required performance within a 100-150 runs. However, assuming the agent can do more runs then this wouldn't be an issue.
 
+\subsection{Improved Results}
+To make the arm gripper achieve 80+\% accuracy within a 100 frames. I have made couple few changes to the code and tuned parameters appropriately.
+
+In ArmPlugin::OnUpdate we made the following changes:
+\begin{lstlisting}
+void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
+{
+    ...
+    const float a = 0.5;
+    avgGoalDelta = a * avgGoalDelta + (1 - a) * distDelta;
+    rewardHistory = (avgGoalDelta > 0.01 ? avgGoalDelta : 0.1 * REWARD_LOSS);
+    newReward     = true;
+	...
+}
+\end{lstlisting}
+What this change does it rewards the RL agent only when making significant steps towards the target (+0.01) otherwise the agent is rewarded negatively when it moves away or when the arm stay somewhat stationary.
+
+Another change we implemented is when part of the arm hits the object we used to terminate the episode immediately in fear that the target moves from its place. This was not the cast all the time. The target object can potentially move away but only in fraction of the cases this happens. When the target object stays in place the arm can potentially proceed and succeed in grabbing the object. This allows us to gain more successful grabs. The following listing summarizes these changes
+
+\begin{lstlisting}
+void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
+{
+    ...
+    if (contacts->contact(i).collision1() == COLLISION_ITEM &&
+    	contacts->contact(i).collision2() == COLLISION_POINT)
+    {
+    	rewardHistory = REWARD_WIN;
+    	newReward  = true;
+    	endEpisode = true;
+    	return;
+    }
+    else
+    {
+    	rewardHistory = REWARD_LOSS;
+    	newReward  = true;
+    	endEpisode = false; /* Don't end episode, keep going */
+    }
+    ...
+}
+\end{lstlisting}
+
+Since we removed the multiplication by REWARD\_WIN for interim rewards. The REWARD\_WIN and REWARD\_LOSS had to be adjusted. Table 2 shows only updated parameters. Additionally, we lowered the learning rate from 0.1 to 0.01, this resulted in more expected outcome across different runs of the entire simulation.
+
+\begin{table}[ht]
+\caption{Updated Parameters}
+\label{updated_params}
+\begin{center}
+\begin{tabular}{|c||c||c|}
+\hline
+Parameter & Value & Explanation\\
+\hline
+LEARNING\_RATE & 0.01 & Lowering this from previous makes the outcome consistent \\
+\hline
+BATCH\_SIZE & 32 & Reduced from 64 \\
+\hline
+REWARD\_WIN  & 1.0f & Scales well with the new interim reward: avgGoalDelta \\
+\hline
+REWARD\_LOSS & -1.0f & Consistent with REWARD\_WIN \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Figure 2 shows the outcome of this run under the updated code and parameters. We can clearly see that the arm gripper was able to execute 83 successful grabs out of 100 runs.
+
+\begin{figure}[!thpb]
+      \centering
+      \includegraphics[width=\linewidth]{final-result.png}
+      \caption{Best achieved result.}
+      \label{fig:robot2}
+\end{figure}
+
 %Student should discuss on what approaches they could take to improve their results.
+\subsection{Conclusions}
 To improve the results even further, we can let the agent train for longer time such that it will have better chance of discovering the optimal policy. Once the robot learns, we should be able to disable or reduce the amount of randomness in agent and apply the optimal policy and that should give us better results.
 
 Another way to produce better results is to a grid search on the list of parameters.
