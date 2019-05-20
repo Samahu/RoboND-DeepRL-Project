@@ -37,12 +37,12 @@
 
 #define INPUT_WIDTH   64
 #define INPUT_HEIGHT  64
-#define OPTIMIZER "RMSprop"
-#define LEARNING_RATE 0.1f
+#define OPTIMIZER "Adam"
+#define LEARNING_RATE 0.08f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 64
 #define USE_LSTM false
-#define LSTM_SIZE 32
+#define LSTM_SIZE 256
 
 /*
 / TODO - Define Reward Parameters
@@ -627,12 +627,16 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				// compute the smoothed moving average of the delta of the distance to the goal
 				distDeltas.push_back(distDelta);
 
+				/*
 				avgGoalDelta = 0;
 				for (auto e : distDeltas)
 					avgGoalDelta += e;
 
 				avgGoalDelta /= distDeltas.size();
+				*/
 
+				float a = 0.9;
+				avgGoalDelta = a * avgGoalDelta + (1 - a) * distDelta;
 				rewardHistory = avgGoalDelta * REWARD_WIN;
 
 				newReward     = true;
