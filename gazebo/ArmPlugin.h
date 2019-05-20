@@ -61,6 +61,7 @@ public:
 
 private:
 	static float BoxDistance(const math::Box& a, const math::Box& b);
+	static float BoxDistance2(const math::Box& a, const math::Box& b);
 	bool checkGroundContact(const math::Box& box, float floor) const;
 
 private:
@@ -88,6 +89,7 @@ private:
 	uint32_t animationStep;
 	float    resetPos[DOF];
 	float    lastGoalDistance;
+	float	 initialGoalDistance;
 	boost::circular_buffer<float> distDeltas;
 	float    avgGoalDelta;
 	int	    successfulGrabs;

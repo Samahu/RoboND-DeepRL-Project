@@ -37,10 +37,10 @@
 
 #define INPUT_WIDTH   64
 #define INPUT_HEIGHT  64
-#define OPTIMIZER "Adam"
-#define LEARNING_RATE 0.08f
+#define OPTIMIZER "RMSprop"
+#define LEARNING_RATE 0.01f
 #define REPLAY_MEMORY 10000
-#define BATCH_SIZE 64
+#define BATCH_SIZE 32
 #define USE_LSTM false
 #define LSTM_SIZE 256
 
@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  200.0f
-#define REWARD_LOSS -200.0f
+#define REWARD_WIN  1.0f
+#define REWARD_LOSS -1.0f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -285,7 +285,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		{
 			rewardHistory = REWARD_LOSS;
 			newReward  = true;
-			endEpisode = true;
+			endEpisode = false;
 		}
 		
 	}
@@ -474,6 +474,12 @@ float ArmPlugin::resetPosition( uint32_t dof )
 	return resetPos[dof];
 }
 
+// compute the distance between two bounding boxes
+float ArmPlugin::BoxDistance2(const math::Box& a, const math::Box& b)
+{
+	auto d = a.GetCenter() - b.GetCenter();
+	return d.GetLength();
+} 
 
 // compute the distance between two bounding boxes
 float ArmPlugin::BoxDistance(const math::Box& a, const math::Box& b)
@@ -613,7 +619,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		
 		if(!checkGroundContact(gripBBox, groundContact))
 		{
-			const float distGoal = BoxDistance(gripBBox, prop->model->GetBoundingBox()); // compute the reward from distance to the goal
+			const float distGoal = BoxDistance2(gripBBox, prop->model->GetBoundingBox()); // compute the reward from distance to the goal
 
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
@@ -622,12 +628,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 
-				
-
 				// compute the smoothed moving average of the delta of the distance to the goal
-				distDeltas.push_back(distDelta);
 
 				/*
+				distDeltas.push_back(distDelta);
 				avgGoalDelta = 0;
 				for (auto e : distDeltas)
 					avgGoalDelta += e;
@@ -635,10 +639,9 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				avgGoalDelta /= distDeltas.size();
 				*/
 
-				float a = 0.9;
+				const float a = 0.5;
 				avgGoalDelta = a * avgGoalDelta + (1 - a) * distDelta;
-				rewardHistory = avgGoalDelta * REWARD_WIN;
-
+				rewardHistory = (avgGoalDelta > 0.01 ? avgGoalDelta : 0.1 * REWARD_LOSS);
 				newReward     = true;
 			}
 
@@ -649,7 +652,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 	// issue rewards and train DQN
 	if( newReward && agent != NULL )
 	{
-		if(DEBUG){printf("ArmPlugin - issuing reward %f, EOE=%s  %s\n", rewardHistory, endEpisode ? "true" : "false", (rewardHistory > 0.1f) ? "POS+" :(rewardHistory > 0.0f) ? "POS" : (rewardHistory < 0.0f) ? "    NEG" : "       ZERO");}
+		if(true){printf("ArmPlugin - issuing reward %f, EOE=%s  %s\n", rewardHistory, endEpisode ? "true" : "false", (rewardHistory > 0.1f) ? "POS+" :(rewardHistory > 0.0f) ? "POS" : (rewardHistory < 0.0f) ? "    NEG" : "       ZERO");}
 		agent->NextReward(rewardHistory, endEpisode);
 
 		// reset reward indicator
@@ -663,6 +666,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			endEpisode       = false;
 			episodeFrames    = 0;
 			lastGoalDistance = 0.0f;
+			initialGoalDistance = 0.0;
 			avgGoalDelta     = 0.0f;
 			distDeltas.clear();
 
